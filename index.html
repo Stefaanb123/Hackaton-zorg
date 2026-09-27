@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SentinelDoc &mdash; Redline &amp; Gap Analysis Agent (POC)</title>
+<style>
+  :root{
+    --bg: #0f172a;
+    --panel: #ffffff;
+    --panel-alt: #f4f6fb;
+    --border: #e2e6ef;
+    --text: #1c2430;
+    --muted: #667085;
+    --brand: #2952e3;
+    --brand-dark: #1c3aa8;
+    --danger: #d92d20;
+    --danger-bg: #fff1f0;
+    --success: #12805c;
+    --success-bg: #ecfdf5;
+    --warn: #b25e09;
+    --warn-bg: #fff7e6;
+    --crit: #b91c1c;
+    --crit-bg: #fee2e2;
+    --radius: 10px;
+    font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body{
+    margin:0;
+    background: #eef1f7;
+    color: var(--text);
+    font-size: 14px;
+  }
+  header.app-bar{
+    background: linear-gradient(120deg, var(--bg), #1e2c58);
+    color: #fff;
+    padding: 14px 24px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  header.app-bar .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-weight:700;
+    font-size:18px;
+  }
+  header.app-bar .brand .logo{
+    width:30px;height:30px;border-radius:8px;
+    background: linear-gradient(135deg,#4f7bff,#8a5cff);
+    display:flex;align-items:center;justify-content:center;
+    font-size:16px;
+  }
+  header.app-bar .tagline{
+    font-size:12px;
+    color:#c7d2fe;
+    font-weight:400;
+  }
+  header.app-bar .stack-pill{
+    font-size:11px;
+    background: rgba(255,255,255,0.12);
+    padding:5px 10px;
+    border-radius: 999px;
+    color:#e0e7ff;
+    border:1px solid rgba(255,255,255,0.2);
+  }
+
+  .layout{
+    display:grid;
+    grid-template-columns: 1fr;
+    gap:16px;
+    padding:16px;
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+
+  /* ---------- Stats row ---------- */
+  .stats-row{
+    display:grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap:12px;
+  }
+  .stat-card{
+    background: var(--panel);
+    border:1px solid var(--border);
+    border-radius: var(--radius);
+    padding:14px 16px;
+  }
+  .stat-card .num{ font-size:24px; font-weight:700; }
+  .stat-card .lbl{ color:var(--muted); font-size:12px; margin-top:2px;}
+  .stat-card.crit .num{ color: var(--crit); }
+  .stat-card.ok .num{ color: var(--success); }
+
+  /* ---------- Document toolbar ---------- */
+  .doc-toolbar{
+    background: var(--panel);
+    border:1px solid var(--border);
+    border-radius: var(--radius);
+    padding:10px 16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .doc-tabs{ display:flex; gap:6px; flex-wrap:wrap; }
+  .doc-tab{
+    border:1px solid var(--border);
+    background:var(--panel-alt);
+    color:var(--text);
+    padding:7px 14px;
+    border-radius:8px;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    gap:7px;
+  }
+  .doc-tab.active{ background: var(--brand); border-color:var(--brand); color:#fff; }
+  .doc-tab .count{
+    font-size:10.5px;
+    font-weight:700;
+    background:rgba(0,0,0,0.1);
+    padding:1px 6px;
+    border-radius:999px;
+  }
+  .doc-tab.active .count{ background:rgba(255,255,255,0.28); }
+  .doc-tab .count.zero{ opacity:.55; }
+
+  .gap-nav{ display:flex; align-items:center; gap:10px; }
+  .gap-nav button{
+    border:1px solid var(--border);
+    background:#fff;
+    padding:6px 12px;
+    border-radius:6px;
+    font-size:12.5px;
+    cursor:pointer;
+    color:var(--text);
+    display:flex; align-items:center; gap:5px;
+  }
+  .gap-nav button:disabled{ opacity:.4; cursor:not-allowed; }
+  .gap-nav .progress{ font-size:12px; color:var(--muted); font-weight:600; white-space:nowrap; }
+
+  /* ---------- Workspace: reading pane + review panel ---------- */
+  .workspace{
+    display:grid;
+    grid-template-columns: minmax(0,1fr) 380px;
+    gap:16px;
+    align-items:start;
+  }
+
+  .reading-pane{
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius: var(--radius);
+    padding:26px 34px;
+    max-height: calc(100vh - 260px);
+    overflow-y:auto;
+    scroll-behavior:smooth;
+  }
+  .reading-pane .doc-heading{ font-size:19px; font-weight:700; margin:0 0 4px; }
+  .reading-pane .doc-sub{ color:var(--muted); font-size:12px; margin-bottom:10px; }
+  .reading-legend{
+    display:flex; gap:14px; font-size:11.5px; color:var(--muted);
+    border-bottom:1px solid var(--border); padding-bottom:14px; margin-bottom:6px; flex-wrap:wrap;
+  }
+  .reading-legend span{ display:inline-flex; align-items:center; gap:5px; }
+  .reading-legend .dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .reading-legend .dot.pending{ background:#f0c419; }
+  .reading-legend .dot.accepted{ background: var(--success); }
+  .reading-legend .dot.rejected{ background: var(--danger); }
+
+  .reading-pane h3.section-heading{
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:.4px;
+    color:#334;
+    margin:28px 0 12px;
+    padding-bottom:6px;
+    border-bottom:1px solid var(--border);
+    font-family: -apple-system, Segoe UI, sans-serif;
+  }
+  .reading-pane h3.section-heading:first-of-type{ margin-top:6px; }
+  .reading-pane p{
+    font-family: "Cambria", Georgia, serif;
+    font-size:14px;
+    line-height:1.85;
+    color:#2b3444;
+    margin:0 0 14px;
+  }
+  .section-ellipsis{
+    text-align:center;
+    color:#b7bfcd;
+    font-size:12px;
+    margin:4px 0 4px;
+    font-family: -apple-system, Segoe UI, sans-serif;
+  }
+
+  /* inline gap markers within the running text */
+  .gap-anchor{ cursor:pointer; }
+  .gap-num{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:17px; height:17px;
+    border-radius:50%;
+    font-size:9.5px;
+    font-weight:700;
+    color:#fff;
+    margin-right:3px;
+    vertical-align:2px;
+  }
+  .gap-num.st-pending{ background:#b8860b; }
+  .gap-num.st-accepted{ background: var(--success); }
+  .gap-num.st-rejected{ background: var(--danger); }
+
+  mark.inline-flag{ border-radius:3px; padding:1px 3px; }
+  mark.inline-flag.st-pending{ background:#fff1b8; box-shadow: inset 0 0 0 1px #f0c419; }
+  span.inline-flag.st-rejected{
+    background:#fbe9e7;
+    text-decoration: line-through;
+    text-decoration-color:#d92d20;
+    color:#7a1f1a;
+    padding:1px 3px;
+    border-radius:3px;
+  }
+  del.removed-inline{ background:#ffd7d5; color:#7a1f1a; text-decoration: line-through; padding:0 2px; border-radius:3px;}
+  ins.added-inline, ins.added-block{ background:#c9f6de; color:#0b5a3d; text-decoration:none; padding:0 2px; border-radius:3px;}
+
+  .gap-block{
+    display:inline-block;
+    border:1px dashed #b5bccb;
+    border-radius:6px;
+    padding:5px 9px;
+    font-style:italic;
+    color:var(--muted);
+    font-size:13px;
+    font-family: -apple-system, Segoe UI, sans-serif;
+  }
+  .gap-block.st-pending{ border-color:#f0c419; background:#fffbea; color:#8a6d00; font-style:normal; }
+  .gap-block.st-rejected{ border-color:#f3b4ae; background:#fff5f5; color:#9b2c2c; }
+
+  .flag-chip{
+    font-family: -apple-system, Segoe UI, sans-serif;
+    font-size:9.5px;
+    font-weight:700;
+    border-radius:4px;
+    padding:1px 6px;
+    margin-left:5px;
+    white-space:nowrap;
+    vertical-align:2px;
+    border:1px solid transparent;
+  }
+  .flag-chip.st-pending{ color:#8a6d00; background:#fff1b8; border-color:#f0c419; }
+  .flag-chip.st-accepted{ color: var(--success); background: var(--success-bg); border-color:#9fe3c4; }
+  .flag-chip.st-rejected{ color: var(--danger); background: var(--danger-bg); border-color:#f3b4ae; }
+
+  .gap-anchor.active mark, .gap-anchor.active .gap-block, .gap-anchor.active span.inline-flag{
+    box-shadow: 0 0 0 3px rgba(41,82,227,0.35);
+  }
+  .gap-anchor.flash mark, .gap-anchor.flash .gap-block, .gap-anchor.flash span.inline-flag{
+    animation: flashHighlight 1.3s ease;
+  }
+  @keyframes flashHighlight{
+    0%{ box-shadow: 0 0 0 5px rgba(41,82,227,0.55); }
+    100%{ box-shadow: 0 0 0 0 rgba(41,82,227,0); }
+  }
+
+  /* ---------- Review panel (right) ---------- */
+  .review-panel{
+    background: var(--panel);
+    border:1px solid var(--border);
+    border-radius: var(--radius);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 260px);
+    border-top: 3px solid var(--brand);
+  }
+  .review-panel.sev-border-critical{ border-top-color: var(--crit); }
+  .review-panel.sev-border-high{ border-top-color: var(--warn); }
+  .review-panel.sev-border-medium{ border-top-color: var(--brand); }
+
+  .pane-head{
+    padding:12px 16px;
+    border-bottom:1px solid var(--border);
+    background: var(--panel-alt);
+  }
+  .pane-head .ph-title{ font-size:13px; font-weight:700; margin:0 0 2px; }
+  .pane-head .ph-sub{ font-size:11.5px; color:var(--muted); }
+
+  .pane-scroll{ padding:16px; overflow-y:auto; flex:1; }
+
+  .citation-box{
+    background: var(--panel-alt);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:12px;
+    margin-bottom:14px;
+  }
+  .citation-box .c-title{ font-weight:700; margin-bottom:4px; display:flex; align-items:center; gap:6px;}
+
+  .rationale{ font-size:13px; color:#374151; margin-bottom:14px; }
+  .rationale b{ color:var(--text); }
+
+  .diff-toolbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+  }
+  .view-toggle{ display:flex; gap:6px; }
+  .view-toggle button{
+    border:1px solid var(--border);
+    background:#fff;
+    padding:5px 12px;
+    border-radius:6px;
+    font-size:12px;
+    cursor:pointer;
+    color:var(--muted);
+  }
+  .view-toggle button.active{ background:var(--brand); border-color:var(--brand); color:#fff; }
+  .legend{ font-size:11.5px; color:var(--muted); display:flex; gap:14px;}
+  .legend span{ display:inline-flex; align-items:center; gap:4px;}
+  .legend .swatch{ width:10px; height:10px; border-radius:2px; display:inline-block;}
+
+  .diff-side-by-side{ display:grid; grid-template-columns: 1fr; gap:12px; }
+  .diff-col{ border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+  .diff-col .col-head{
+    padding:7px 11px;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.3px;
+    text-transform:uppercase;
+    border-bottom:1px solid var(--border);
+  }
+  .diff-col.old .col-head{ background:#fff5f5; color:var(--danger); }
+  .diff-col.new .col-head{ background:#f0fdf7; color:var(--success); }
+  .diff-col .col-body{
+    padding:12px 13px;
+    font-size:13px;
+    line-height:1.6;
+    font-family: "Cambria", Georgia, serif;
+    white-space:pre-wrap;
+  }
+  del{ background:#ffd7d5; color:#7a1f1a; text-decoration: line-through; padding:0 2px; border-radius:3px;}
+  ins{ background:#c9f6de; color:#0b5a3d; text-decoration:none; padding:0 2px; border-radius:3px;}
+
+  .unified-view{ display:none; }
+  .unified-view.active{ display:block; }
+  .diff-side-by-side.hidden{ display:none; }
+  .unified-body{
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 13px;
+    font-size:13px;
+    line-height:1.65;
+    font-family: "Cambria", Georgia, serif;
+    white-space:pre-wrap;
+    background:#fff;
+  }
+
+  .action-bar{
+    padding:12px 16px 16px;
+    display:flex;
+    gap:8px;
+    border-top:1px solid var(--border);
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .btn{
+    border:none;
+    padding:9px 15px;
+    border-radius:8px;
+    font-size:12.5px;
+    font-weight:600;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+  }
+  .btn-accept{ background: var(--success); color:#fff; }
+  .btn-accept:hover{ background:#0d6b4d; }
+  .btn-reject{ background: var(--danger); color:#fff; }
+  .btn-reject:hover{ background:#b6241a; }
+  .btn-secondary{ background:var(--panel-alt); color:var(--text); border:1px solid var(--border); }
+  .btn:disabled{ opacity:.45; cursor:not-allowed; }
+  .decided-note{ font-size:11px; color:var(--muted); }
+
+  .mini-gap-list{ margin-top:18px; border-top:1px solid var(--border); padding-top:12px; }
+  .mini-gap-list .mgl-title{
+    font-size:10.5px;
+    text-transform:uppercase;
+    letter-spacing:.3px;
+    color:var(--muted);
+    font-weight:700;
+    margin-bottom:8px;
+  }
+  .mini-gap-item{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 8px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:12px;
+  }
+  .mini-gap-item:hover{ background:var(--panel-alt); }
+  .mini-gap-item.active{ background:#eaf0ff; }
+  .mini-gap-item .dot{ width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .mini-gap-item .dot.pending{ background:#f0c419; }
+  .mini-gap-item .dot.accepted{ background: var(--success); }
+  .mini-gap-item .dot.rejected{ background: var(--danger); }
+  .mini-gap-item .sec{ flex:1; color:var(--text); }
+  .mini-gap-item .st{ color:var(--muted); font-size:10.5px; text-transform:uppercase; font-weight:700; }
+
+  /* ---------- Audit log & footer ---------- */
+  .audit-log{
+    background: var(--panel);
+    border:1px solid var(--border);
+    border-radius: var(--radius);
+    padding:14px 18px;
+  }
+  .audit-log h2{ font-size:14px; margin:0 0 10px; }
+  .audit-log table{ width:100%; border-collapse: collapse; font-size:12.5px; }
+  .audit-log th{ text-align:left; color:var(--muted); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--border);}
+  .audit-log td{ padding:7px 8px; border-bottom:1px solid #f0f2f7; }
+  .audit-log tr:last-child td{ border-bottom:none; }
+  .audit-empty{ color:var(--muted); font-style:italic; padding:8px; }
+
+  footer.disclaimer{
+    max-width:1500px;
+    margin: 0 auto 24px;
+    padding: 0 16px;
+    color:#7a8598;
+    font-size:11.5px;
+    line-height:1.6;
+  }
+
+  @media (max-width: 980px){
+    .workspace{ grid-template-columns: 1fr; }
+    .review-panel{ position:relative; top:0; max-height:none; }
+    .reading-pane{ max-height:none; }
+    .diff-side-by-side{ grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-bar">
+  <div class="brand">
+    <div class="logo">&#128269;</div>
+    <div>
+      SentinelDoc &mdash; Redline &amp; Gap Analysis Agent
+      <div class="tagline">Crisis-control policy actualization &middot; proof of concept</div>
+    </div>
+  </div>
+  <div class="stack-pill">Target stack: Azure OpenAI &middot; Azure AI Search &middot; Microsoft 365 (SharePoint / Word)</div>
+</header>
+
+<div class="layout">
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="num">3</div>
+      <div class="lbl">Policy documents monitored (.docx)</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">7</div>
+      <div class="lbl">Source bulletins ingested this week (.pdf)</div>
+    </div>
+    <div class="stat-card crit">
+      <div class="num" id="statPending">4</div>
+      <div class="lbl">Proposed edits pending review</div>
+    </div>
+    <div class="stat-card ok">
+      <div class="num" id="statResolved">2</div>
+      <div class="lbl">Reviewed this session</div>
+    </div>
+  </div>
+
+  <div class="doc-toolbar">
+    <div class="doc-tabs" id="docTabs"></div>
+    <div class="gap-nav">
+      <button id="prevGapBtn">&#8593; Previous gap</button>
+      <span class="progress" id="gapProgress"></span>
+      <button id="nextGapBtn">Next gap &#8595;</button>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <div class="reading-pane" id="readingPane"><!-- populated by JS --></div>
+    <div class="review-panel" id="reviewPanel"><!-- populated by JS --></div>
+  </div>
+
+  <section class="audit-log">
+    <h2>Review audit trail</h2>
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Document</th><th>Section</th><th>Decision</th><th>Reviewer</th></tr>
+      </thead>
+      <tbody id="auditBody"></tbody>
+    </table>
+    <div class="audit-empty" id="auditEmpty" style="display:none;">No decisions recorded yet in this session.</div>
+  </section>
+
+</div>
+
+<footer class="disclaimer">
+  This is a static, click-through proof of concept using mock data only &mdash; no documents are parsed and no AI calls are made.
+  Read each policy document exactly as it appears today in the left-hand pane; passages the agent flagged against incoming source
+  bulletins are highlighted inline as you scroll, numbered in reading order. Click any highlighted passage (or use Previous/Next gap)
+  to open its structured redline in the right-hand review panel &mdash; citation, rationale, and diff &mdash; and accept or reject before
+  anything is written back to the authoritative .docx (e.g. via Microsoft Graph / Word Online in the target Azure + M365 architecture).
+</footer>
+
+<script>
+// ---------------------------------------------------------------------
+// Mock data representing "gaps" found by comparing policy docs vs bulletins.
+// Each case belongs to a document and a position ("order") within it, so the
+// reading pane can render the document as one continuous flow of text.
+// ---------------------------------------------------------------------
+const documents = [
+  "Infectious Disease Response Plan.docx",
+  "Outbreak Reporting Procedure.docx",
+  "Vaccination Guidance.docx"
+];
+
+const cases = [
+  {
+    id: 1,
+    docName: "Infectious Disease Response Plan.docx",
+    order: 1,
+    section: "3.2 Isolation Period",
+    severity: "critical",
+    source: { name: "WHO Technical Bulletin 2026-14.pdf", date: "2026-09-21", page: "p.4, §2.1" },
+    rationale: "The source bulletin shortens the recommended isolation period from 10 to 5 days for confirmed low-severity cases, based on updated viral shedding data. The current policy is out of date and may cause unnecessary bed occupancy during a surge.",
+    kind: "modify",
+    before: "All individuals presenting with laboratory-confirmed infection are subject to mandatory isolation measures to reduce onward transmission within the facility and surrounding community. Isolation status must be recorded in the patient's case file and communicated to the attending clinical team within two hours of diagnosis confirmation.",
+    current: "Patients with a confirmed diagnosis must remain in isolation for a minimum of 10 days from symptom onset, regardless of symptom severity, before being cleared for discharge or return to work.",
+    proposed: "Patients with a confirmed diagnosis must remain in isolation for a minimum of 5 days from symptom onset for cases classified as low-severity, before being cleared for discharge or return to work.",
+    after: "Isolation may only be lifted early by written authorization of the infection control officer. Facilities must maintain a daily isolation register for audit purposes.",
+    oldHtml: "Patients with a confirmed diagnosis must remain in isolation for a minimum of <del>10 days</del> from symptom onset, regardless of symptom severity, before being cleared for discharge or return to work.",
+    newHtml: "Patients with a confirmed diagnosis must remain in isolation for a minimum of <ins>5 days</ins> from symptom onset for cases classified as <ins>low-severity</ins>, before being cleared for discharge or return to work.",
+    unifiedHtml: "Patients with a confirmed diagnosis must remain in isolation for a minimum of <del>10 days</del><ins>5 days</ins> from symptom onset<ins>, for cases classified as low-severity,</ins> before being cleared for discharge or return to work.",
+    status: "pending"
+  },
+  {
+    id: 2,
+    docName: "Infectious Disease Response Plan.docx",
+    order: 2,
+    section: "5.1 Personal Protective Equipment",
+    severity: "high",
+    source: { name: "CDC Field Advisory 118.pdf", date: "2026-09-19", page: "p.2, §1.3" },
+    rationale: "New advisory adds a requirement for N95/FFP2 respirators (previously surgical masks were sufficient) in high-risk contact scenarios, following an updated transmission risk assessment.",
+    kind: "modify",
+    before: "Appropriate PPE must be donned prior to any patient contact and doffed following strict sequencing to avoid self-contamination. PPE supplies are to be replenished daily by the ward logistics coordinator.",
+    current: "Staff in direct contact with symptomatic patients must wear a standard surgical mask, gloves, and a disposable gown.",
+    proposed: "Staff in direct contact with symptomatic patients must wear an N95 or FFP2-rated respirator, gloves, and a disposable gown.",
+    after: "Used PPE must be disposed of in designated biohazard containers immediately after doffing. Any breach of PPE protocol must be reported to the shift supervisor without delay.",
+    oldHtml: "Staff in direct contact with symptomatic patients must wear <del>a standard surgical mask</del>, gloves, and a disposable gown.",
+    newHtml: "Staff in direct contact with symptomatic patients must wear <ins>an N95 or FFP2-rated respirator</ins>, gloves, and a disposable gown.",
+    unifiedHtml: "Staff in direct contact with symptomatic patients must wear <del>a standard surgical mask</del><ins>an N95 or FFP2-rated respirator</ins>, gloves, and a disposable gown.",
+    status: "pending"
+  },
+  {
+    id: 5,
+    docName: "Outbreak Reporting Procedure.docx",
+    order: 1,
+    section: "1.2 Definitions",
+    severity: "medium",
+    source: { name: "National Health Authority Circular 44.pdf", date: "2026-09-15", page: "p.1, §0" },
+    rationale: "The circular introduces a new formal definition for 'cluster event' that the current procedure does not define, creating ambiguity in reporting obligations. Suggested addition, no conflicting text removed.",
+    kind: "add",
+    before: "For the purposes of this procedure, the following terms apply:\n\n&ldquo;Confirmed case&rdquo; means an individual with a positive laboratory test result for the notifiable pathogen.\n\n&ldquo;Suspected case&rdquo; means an individual meeting the clinical case definition pending laboratory confirmation.",
+    proposed: "&ldquo;Cluster event&rdquo; means three or more epidemiologically linked confirmed cases occurring within the same facility or household within a 14-day period.",
+    after: "&ldquo;Facility&rdquo; means any licensed premises providing inpatient or outpatient clinical care.",
+    oldHtml: "<span style='color:#9aa4b2'>[No equivalent definition currently exists in this document]</span>",
+    newHtml: "<ins>\"Cluster event\" means three or more epidemiologically linked confirmed cases occurring within the same facility or household within a 14-day period.</ins>",
+    unifiedHtml: "<ins>\"Cluster event\" means three or more epidemiologically linked confirmed cases occurring within the same facility or household within a 14-day period.</ins> <span style='color:#9aa4b2'>(new definition &mdash; no prior text existed)</span>",
+    status: "accepted"
+  },
+  {
+    id: 3,
+    docName: "Outbreak Reporting Procedure.docx",
+    order: 2,
+    section: "2.4 Reporting Threshold",
+    severity: "medium",
+    source: { name: "National Health Authority Circular 44.pdf", date: "2026-09-15", page: "p.1, §1" },
+    rationale: "The reporting threshold for mandatory notification has been lowered from 5 to 3 confirmed cases in a single facility within 48 hours, per the new circular. Current policy would delay escalation.",
+    kind: "modify",
+    before: "Early detection of clustered cases is essential to enable a timely public health response. Facility infection control leads are responsible for monitoring case counts on a rolling basis.",
+    current: "Facilities must notify the regional health authority within 24 hours of identifying 5 or more confirmed cases linked to the same facility within a 48-hour window.",
+    proposed: "Facilities must notify the regional health authority within 24 hours of identifying 3 or more confirmed cases linked to the same facility within a 48-hour window.",
+    after: "Notifications must be submitted using the standard Form OB-1 and copied to the facility's medical director.",
+    oldHtml: "Facilities must notify the regional health authority within 24 hours of identifying <del>5 or more</del> confirmed cases linked to the same facility within a 48-hour window.",
+    newHtml: "Facilities must notify the regional health authority within 24 hours of identifying <ins>3 or more</ins> confirmed cases linked to the same facility within a 48-hour window.",
+    unifiedHtml: "Facilities must notify the regional health authority within 24 hours of identifying <del>5 or more</del><ins>3 or more</ins> confirmed cases linked to the same facility within a 48-hour window.",
+    status: "pending"
+  },
+  {
+    id: 6,
+    docName: "Vaccination Guidance.docx",
+    order: 1,
+    section: "2.1 Eligible Age Groups",
+    severity: "medium",
+    source: { name: "CDC Field Advisory 118.pdf", date: "2026-09-19", page: "p.3, §2.0" },
+    rationale: "Advisory extends eligibility to children aged 5-11 under a new emergency authorization. Confirmed as consistent with current national policy; recommend accepting.",
+    kind: "modify",
+    before: "Eligibility criteria are reviewed in line with national immunization policy and emergency use authorizations issued by the relevant regulatory body.",
+    current: "This guidance applies to individuals aged 12 years and older.",
+    proposed: "This guidance applies to individuals aged 5 years and older.",
+    after: "Eligibility for individuals outside this range requires case-by-case clinical review and documented parental or guardian consent where applicable.",
+    oldHtml: "This guidance applies to individuals aged <del>12 years and older</del>.",
+    newHtml: "This guidance applies to individuals aged <ins>5 years and older</ins>.",
+    unifiedHtml: "This guidance applies to individuals aged <del>12 years and older</del><ins>5 years and older</ins>.",
+    status: "rejected"
+  },
+  {
+    id: 4,
+    docName: "Vaccination Guidance.docx",
+    order: 2,
+    section: "4.3 Booster Interval",
+    severity: "high",
+    source: { name: "WHO Technical Bulletin 2026-14.pdf", date: "2026-09-21", page: "p.6, §3.2" },
+    rationale: "Booster interval guidance changed from 6 months to 4 months for high-risk groups following new efficacy data cited in the bulletin. This is a gap not yet reflected in the current guidance.",
+    kind: "modify",
+    before: "Booster dosing schedules are reviewed periodically in line with emerging clinical evidence and supply availability. Eligibility is determined by risk category as defined in Section 2.",
+    current: "High-risk individuals should receive a booster dose no sooner than 6 months after their previous dose.",
+    proposed: "High-risk individuals should receive a booster dose no sooner than 4 months after their previous dose.",
+    after: "Booster appointments should be scheduled through the regional immunization portal. Adverse events following immunization must be reported per Section 6.",
+    oldHtml: "High-risk individuals should receive a booster dose no sooner than <del>6 months</del> after their previous dose.",
+    newHtml: "High-risk individuals should receive a booster dose no sooner than <ins>4 months</ins> after their previous dose.",
+    unifiedHtml: "High-risk individuals should receive a booster dose no sooner than <del>6 months</del><ins>4 months</ins> after their previous dose.",
+    status: "pending"
+  }
+];
+
+const severityLabel = { critical: "Critical", high: "High", medium: "Medium" };
+
+let activeDoc = documents[0];
+let activeCaseId = getDocCases(activeDoc)[0].id;
+let viewMode = "side"; // 'side' | 'unified'
+const auditLog = [];
+
+function getDocCases(docName){
+  return cases.filter(c => c.docName === docName).sort((a,b) => a.order - b.order);
+}
+function statusChipLabel(c){
+  if(c.status === "pending") return c.kind === "add" ? "&#9873; New text available" : "&#9873; Proposed edit";
+  if(c.status === "accepted") return c.kind === "add" ? "&#10003; Added" : "&#10003; Accepted";
+  return c.kind === "add" ? "&#10005; Rejected &mdash; not added" : "&#10005; Rejected &mdash; kept as-is";
+}
+function fmtTime(d){ return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+
+// ---------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------
+function renderAll(){
+  renderStats();
+  renderDocToolbar();
+  renderReading();
+  renderReview();
+  renderAudit();
+}
+
+function renderStats(){
+  const pending = cases.filter(c => c.status === "pending").length;
+  document.getElementById('statPending').textContent = pending;
+  document.getElementById('statResolved').textContent = auditLog.length;
+}
+
+function renderDocToolbar(){
+  const tabs = document.getElementById('docTabs');
+  tabs.innerHTML = documents.map(docName => {
+    const docCases = getDocCases(docName);
+    const pending = docCases.filter(c => c.status === "pending").length;
+    return `
+      <button class="doc-tab ${docName === activeDoc ? 'active' : ''}" data-doc="${docName}">
+        &#128196; ${docName}
+        <span class="count ${pending===0?'zero':''}">${pending} pending</span>
+      </button>
+    `;
+  }).join('');
+  tabs.querySelectorAll('.doc-tab').forEach(btn => {
+    btn.onclick = () => switchDoc(btn.dataset.doc);
+  });
+
+  const list = getDocCases(activeDoc);
+  const idx = list.findIndex(c => c.id === activeCaseId);
+  document.getElementById('gapProgress').textContent = `Gap ${idx+1} of ${list.length} in this document`;
+  document.getElementById('prevGapBtn').disabled = list.length <= 1;
+  document.getElementById('nextGapBtn').disabled = list.length <= 1;
+}
+
+function renderReading(){
+  const pane = document.getElementById('readingPane');
+  const list = getDocCases(activeDoc);
+
+  let body = `
+    <div class="doc-heading">${activeDoc}</div>
+    <div class="doc-sub">Full current text &middot; read top to bottom, exactly as it appears in the authoritative document today</div>
+    <div class="reading-legend">
+      <span><span class="dot pending"></span> Pending review</span>
+      <span><span class="dot accepted"></span> Accepted change</span>
+      <span><span class="dot rejected"></span> Rejected change</span>
+    </div>
+    <div class="section-ellipsis">&#8942; earlier sections unchanged &#8942;</div>
+  `;
+
+  list.forEach((c, i) => {
+    const num = i + 1;
+    body += `<h3 class="section-heading">${c.section}</h3>`;
+    body += `<p>${c.before}</p>`;
+
+    if(c.kind === "add"){
+      if(c.status === "pending"){
+        body += `<p><span class="gap-anchor" data-case="${c.id}">
+          <span class="gap-num st-pending">${num}</span><span class="gap-block st-pending">&#9888; Suggested new definition available &mdash; click to review</span>
+        </span></p>`;
+      } else if(c.status === "accepted"){
+        body += `<p><span class="gap-anchor" data-case="${c.id}">
+          <span class="gap-num st-accepted">${num}</span><ins class="added-block">${c.proposed}</ins><span class="flag-chip st-accepted">${statusChipLabel(c)}</span>
+        </span></p>`;
+      } else {
+        body += `<p><span class="gap-anchor" data-case="${c.id}">
+          <span class="gap-num st-rejected">${num}</span><span class="gap-block st-rejected">&#10005; Suggested addition reviewed and rejected</span>
+        </span></p>`;
+      }
+    } else {
+      if(c.status === "pending"){
+        body += `<p><span class="gap-anchor" data-case="${c.id}">
+          <span class="gap-num st-pending">${num}</span><mark class="inline-flag st-pending">${c.current}</mark><span class="flag-chip st-pending">${statusChipLabel(c)}</span>
+        </span></p>`;
+      } else if(c.status === "accepted"){
+        body += `<p><span class="gap-anchor" data-case="${c.id}">
+          <span class="gap-num st-accepted">${num}</span><del class="removed-inline">${c.current}</del> <ins class="added-inline">${c.proposed}</ins><span class="flag-chip st-accepted">${statusChipLabel(c)}</span>
+        </span></p>`;
+      } else {
+        body += `<p><span class="gap-anchor" data-case="${c.id}">
+          <span class="gap-num st-rejected">${num}</span><span class="inline-flag st-rejected">${c.current}</span><span class="flag-chip st-rejected">${statusChipLabel(c)}</span>
+        </span></p>`;
+      }
+    }
+
+    body += `<p>${c.after}</p>`;
+    if(i < list.length - 1){
+      body += `<div class="section-ellipsis">&#8942; unchanged sections omitted for brevity &#8942;</div>`;
+    }
+  });
+
+  body += `<div class="section-ellipsis">&#8942; remaining sections continue unchanged &#8942;</div>`;
+
+  pane.innerHTML = body;
+
+  pane.querySelectorAll('.gap-anchor').forEach(a => {
+    a.classList.toggle('active', parseInt(a.dataset.case) === activeCaseId);
+    a.onclick = () => setActiveCase(parseInt(a.dataset.case));
+  });
+}
+
+function renderReview(){
+  const panel = document.getElementById('reviewPanel');
+  const c = cases.find(x => x.id === activeCaseId);
+  if(!c){
+    panel.innerHTML = `<div class="pane-scroll">Select a highlighted passage in the document to review its proposed redline.</div>`;
+    return;
+  }
+  const list = getDocCases(activeDoc);
+  const idx = list.findIndex(x => x.id === c.id);
+
+  panel.className = `review-panel sev-border-${c.severity}`;
+  panel.innerHTML = `
+    <div class="pane-head">
+      <div class="ph-title">Gap ${idx+1} of ${list.length} &middot; ${c.section}</div>
+      <div class="ph-sub">Severity: ${severityLabel[c.severity]} &middot; Status: ${c.status.toUpperCase()}</div>
+    </div>
+    <div class="pane-scroll">
+      <div class="citation-box">
+        <div class="c-title">&#128278; Source citation</div>
+        ${c.source.name} &middot; ${c.source.page}<br/>
+        Published ${c.source.date}
+      </div>
+
+      <div class="rationale"><b>Why this was flagged:</b> ${c.rationale}</div>
+
+      <div class="diff-toolbar">
+        <div class="view-toggle">
+          <button data-mode="side" class="${viewMode==='side'?'active':''}">Side-by-side</button>
+          <button data-mode="unified" class="${viewMode==='unified'?'active':''}">Unified diff</button>
+        </div>
+        <div class="legend">
+          <span><span class="swatch" style="background:#ffd7d5;"></span> Removed</span>
+          <span><span class="swatch" style="background:#c9f6de;"></span> Added</span>
+        </div>
+      </div>
+
+      <div class="diff-side-by-side ${viewMode==='unified'?'hidden':''}">
+        <div class="diff-col old">
+          <div class="col-head">Current text</div>
+          <div class="col-body">${c.oldHtml}</div>
+        </div>
+        <div class="diff-col new">
+          <div class="col-head">Proposed text (from source)</div>
+          <div class="col-body">${c.newHtml}</div>
+        </div>
+      </div>
+      <div class="unified-view ${viewMode==='unified'?'active':''}">
+        <div class="unified-body">${c.unifiedHtml}</div>
+      </div>
+
+      <div class="mini-gap-list">
+        <div class="mgl-title">All gaps in this document</div>
+        ${list.map((g,i) => `
+          <div class="mini-gap-item ${g.id===c.id?'active':''}" data-case="${g.id}">
+            <span class="dot ${g.status}"></span>
+            <span class="sec">${i+1}. ${g.section}</span>
+            <span class="st">${g.status}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+    <div class="action-bar">
+      <button class="btn btn-accept" id="btnAccept" ${c.status!=='pending'?'disabled':''}>&#10003; Accept</button>
+      <button class="btn btn-reject" id="btnReject" ${c.status!=='pending'?'disabled':''}>&#10005; Reject</button>
+      <button class="btn btn-secondary" id="btnReset" ${c.status==='pending'?'disabled':''}>&#8635; Reset</button>
+      <span class="decided-note">${c.status!=='pending' ? 'Decision recorded.' : 'No decision yet.'}</span>
+    </div>
+  `;
+
+  panel.querySelectorAll('.view-toggle button').forEach(b => {
+    b.onclick = () => { viewMode = b.dataset.mode; renderReview(); };
+  });
+  panel.querySelectorAll('.mini-gap-item').forEach(item => {
+    item.onclick = () => setActiveCase(parseInt(item.dataset.case), { scrollTo: true, flash: true });
+  });
+
+  const acceptBtn = document.getElementById('btnAccept');
+  const rejectBtn = document.getElementById('btnReject');
+  const resetBtn = document.getElementById('btnReset');
+  if(acceptBtn) acceptBtn.onclick = () => decide(c, 'accepted');
+  if(rejectBtn) rejectBtn.onclick = () => decide(c, 'rejected');
+  if(resetBtn) resetBtn.onclick = () => decide(c, 'pending', true);
+}
+
+function renderAudit(){
+  const body = document.getElementById('auditBody');
+  const empty = document.getElementById('auditEmpty');
+  body.innerHTML = "";
+  if(auditLog.length === 0){ empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  auditLog.forEach(e => {
+    const tr = document.createElement('tr');
+    const decisionColor = e.decision === 'accepted' ? 'var(--success)' : 'var(--danger)';
+    tr.innerHTML = `
+      <td>${fmtTime(e.time)}</td>
+      <td>${e.doc}</td>
+      <td>${e.section}</td>
+      <td style="color:${decisionColor}; font-weight:600;">${e.decision.toUpperCase()}</td>
+      <td>${e.reviewer}</td>
+    `;
+    body.appendChild(tr);
+  });
+}
+
+// ---------------------------------------------------------------------
+// State transitions
+// ---------------------------------------------------------------------
+function switchDoc(docName){
+  activeDoc = docName;
+  const list = getDocCases(activeDoc);
+  const firstPending = list.find(c => c.status === "pending");
+  activeCaseId = (firstPending || list[0]).id;
+  renderAll();
+}
+
+function setActiveCase(id, opts){
+  opts = opts || {};
+  activeCaseId = id;
+  renderDocToolbar();
+  renderReading();
+  renderReview();
+  if(opts.scrollTo){
+    const pane = document.getElementById('readingPane');
+    const anchor = pane.querySelector(`.gap-anchor[data-case="${id}"]`);
+    if(anchor){
+      anchor.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if(opts.flash){
+        anchor.classList.add('flash');
+        setTimeout(() => anchor.classList.remove('flash'), 1300);
+      }
+    }
+  }
+}
+
+function decide(c, status, isReset){
+  c.status = status;
+  if(!isReset){
+    auditLog.unshift({
+      time: new Date(),
+      doc: c.docName,
+      section: c.section,
+      decision: status,
+      reviewer: "You (POC reviewer)"
+    });
+  }
+  renderAll();
+
+  if(!isReset){
+    // Auto-advance to the next pending gap in this document, mirroring a
+    // Word-style "review next comment" flow.
+    const list = getDocCases(activeDoc);
+    const idx = list.findIndex(x => x.id === c.id);
+    const next = list.slice(idx + 1).find(x => x.status === "pending") || list.find(x => x.status === "pending");
+    if(next && next.id !== c.id){
+      setActiveCase(next.id, { scrollTo: true, flash: true });
+    }
+  }
+}
+
+document.getElementById('prevGapBtn').onclick = () => {
+  const list = getDocCases(activeDoc);
+  const idx = list.findIndex(c => c.id === activeCaseId);
+  const prev = list[(idx - 1 + list.length) % list.length];
+  setActiveCase(prev.id, { scrollTo: true, flash: true });
+};
+document.getElementById('nextGapBtn').onclick = () => {
+  const list = getDocCases(activeDoc);
+  const idx = list.findIndex(c => c.id === activeCaseId);
+  const next = list[(idx + 1) % list.length];
+  setActiveCase(next.id, { scrollTo: true, flash: true });
+};
+
+renderAll();
+</script>
+
+</body>
+</html>
