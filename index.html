@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SentinelDoc &mdash; Redline &amp; Gap Analysis Agent (POC)</title>
+<title>DAP &mdash; Data Actualization Platform</title>
 <style>
   :root{
     --bg: #0f172a;
@@ -461,11 +461,10 @@
   <div class="brand">
     <div class="logo">&#128269;</div>
     <div>
-      SentinelDoc &mdash; Redline &amp; Gap Analysis Agent
-      <div class="tagline">Crisis-control policy actualization &middot; proof of concept</div>
+      DAP &mdash; Data-actualisatieplatform
+      <div class="tagline">Crisis paraatheidscel &middot; proof of concept</div>
     </div>
   </div>
-  <div class="stack-pill">Target stack: Azure OpenAI &middot; Azure AI Search &middot; Microsoft 365 (SharePoint / Word)</div>
 </header>
 
 <div class="layout">
@@ -473,28 +472,28 @@
   <div class="stats-row">
     <div class="stat-card">
       <div class="num">3</div>
-      <div class="lbl">Policy documents monitored (.docx)</div>
+      <div class="lbl">Beleidsdocumenten gevolgd (.docx)</div>
     </div>
     <div class="stat-card">
       <div class="num">7</div>
-      <div class="lbl">Source bulletins ingested this week (.pdf)</div>
+      <div class="lbl">Bronbulletins verwerkt deze week (.pdf)</div>
     </div>
     <div class="stat-card crit">
       <div class="num" id="statPending">4</div>
-      <div class="lbl">Proposed edits pending review</div>
+      <div class="lbl">Voorgestelde wijzigingen ter beoordeling</div>
     </div>
     <div class="stat-card ok">
       <div class="num" id="statResolved">2</div>
-      <div class="lbl">Reviewed this session</div>
+      <div class="lbl">Beoordeeld tijdens deze sessie</div>
     </div>
   </div>
 
   <div class="doc-toolbar">
     <div class="doc-tabs" id="docTabs"></div>
     <div class="gap-nav">
-      <button id="prevGapBtn">&#8593; Previous gap</button>
+      <button id="prevGapBtn">&#8593; Vorige wijziging</button>
       <span class="progress" id="gapProgress"></span>
-      <button id="nextGapBtn">Next gap &#8595;</button>
+      <button id="nextGapBtn">Volgende wijziging &#8595;</button>
     </div>
   </div>
 
@@ -504,24 +503,23 @@
   </div>
 
   <section class="audit-log">
-    <h2>Review audit trail</h2>
+    <h2>Controlelogboek</h2>
     <table>
       <thead>
-        <tr><th>Time</th><th>Document</th><th>Section</th><th>Decision</th><th>Reviewer</th></tr>
+        <tr><th>Tijd</th><th>Document</th><th>Onderdeel</th><th>Beslissing</th><th>Beoordelaar</th></tr>
       </thead>
       <tbody id="auditBody"></tbody>
     </table>
-    <div class="audit-empty" id="auditEmpty" style="display:none;">No decisions recorded yet in this session.</div>
+    <div class="audit-empty" id="auditEmpty" style="display:none;">Er zijn tijdens deze sessie nog geen beslissingen vastgelegd.</div>
   </section>
 
 </div>
 
 <footer class="disclaimer">
-  This is a static, click-through proof of concept using mock data only &mdash; no documents are parsed and no AI calls are made.
-  Read each policy document exactly as it appears today in the left-hand pane; passages the agent flagged against incoming source
-  bulletins are highlighted inline as you scroll, numbered in reading order. Click any highlighted passage (or use Previous/Next gap)
-  to open its structured redline in the right-hand review panel &mdash; citation, rationale, and diff &mdash; and accept or reject before
-  anything is written back to the authoritative .docx (e.g. via Microsoft Graph / Word Online in the target Azure + M365 architecture).
+  Dit is een statische, klikbare proof of concept die alleen voorbeeldgegevens gebruikt &mdash; er worden geen documenten verwerkt en er worden geen AI-aanroepen gedaan.
+  Lees elk beleidsdocument zoals het vandaag in het linkerpaneel staat; passages die de agent heeft gemarkeerd op basis van nieuwe bronbulletins,
+  zijn tijdens het scrollen gemarkeerd en genummerd in de volgorde waarin ze voorkomen. Klik op een gemarkeerde passage (of gebruik Vorige/Volgende wijziging)
+  om het gestructureerde wijzigingsvoorstel in het beoordelingspaneel rechts te openen &mdash; met bronverwijzing, toelichting en verschillenoverzicht &mdash; en de wijziging goed of af te keuren.
 </footer>
 
 <script>
@@ -531,122 +529,123 @@
 // reading pane can render the document as one continuous flow of text.
 // ---------------------------------------------------------------------
 const documents = [
-  "Infectious Disease Response Plan.docx",
-  "Outbreak Reporting Procedure.docx",
-  "Vaccination Guidance.docx"
+  "Plan voor de aanpak van infectieziekten.docx",
+  "Procedure voor meldingen van uitbraken.docx",
+  "Vaccinatierichtlijn.docx"
 ];
 
 const cases = [
   {
     id: 1,
-    docName: "Infectious Disease Response Plan.docx",
+    docName: "Plan voor de aanpak van infectieziekten.docx",
     order: 1,
-    section: "3.2 Isolation Period",
+    section: "3.2 Isolatieperiode",
     severity: "critical",
     source: { name: "WHO Technical Bulletin 2026-14.pdf", date: "2026-09-21", page: "p.4, §2.1" },
-    rationale: "The source bulletin shortens the recommended isolation period from 10 to 5 days for confirmed low-severity cases, based on updated viral shedding data. The current policy is out of date and may cause unnecessary bed occupancy during a surge.",
+    rationale: "Het bronbulletin verkort de aanbevolen isolatieperiode van 10 naar 5 dagen voor bevestigde gevallen met een laag risico, op basis van nieuwe gegevens over virusuitscheiding. Het huidige beleid is verouderd en kan tijdens een piek leiden tot onnodige bedbezetting.",
     kind: "modify",
-    before: "All individuals presenting with laboratory-confirmed infection are subject to mandatory isolation measures to reduce onward transmission within the facility and surrounding community. Isolation status must be recorded in the patient's case file and communicated to the attending clinical team within two hours of diagnosis confirmation.",
-    current: "Patients with a confirmed diagnosis must remain in isolation for a minimum of 10 days from symptom onset, regardless of symptom severity, before being cleared for discharge or return to work.",
-    proposed: "Patients with a confirmed diagnosis must remain in isolation for a minimum of 5 days from symptom onset for cases classified as low-severity, before being cleared for discharge or return to work.",
-    after: "Isolation may only be lifted early by written authorization of the infection control officer. Facilities must maintain a daily isolation register for audit purposes.",
-    oldHtml: "Patients with a confirmed diagnosis must remain in isolation for a minimum of <del>10 days</del> from symptom onset, regardless of symptom severity, before being cleared for discharge or return to work.",
-    newHtml: "Patients with a confirmed diagnosis must remain in isolation for a minimum of <ins>5 days</ins> from symptom onset for cases classified as <ins>low-severity</ins>, before being cleared for discharge or return to work.",
-    unifiedHtml: "Patients with a confirmed diagnosis must remain in isolation for a minimum of <del>10 days</del><ins>5 days</ins> from symptom onset<ins>, for cases classified as low-severity,</ins> before being cleared for discharge or return to work.",
+    before: "Iedereen met een laboratoriumbevestigde infectie moet verplicht in isolatie om verdere verspreiding binnen de instelling en de omgeving te beperken. De isolatiestatus moet worden opgenomen in het patiëntendossier en binnen twee uur na bevestiging van de diagnose worden meegedeeld aan het behandelend team.",
+    current: "Patiënten met een bevestigde diagnose moeten vanaf het begin van de symptomen minstens 10 dagen in isolatie blijven, ongeacht de ernst van de symptomen, voordat ze uit het ziekenhuis mogen worden ontslagen of weer aan het werk mogen.",
+    proposed: "Patiënten met een bevestigde diagnose moeten vanaf het begin van de symptomen minstens 5 dagen in isolatie blijven bij gevallen met een laag risico, voordat ze uit het ziekenhuis mogen worden ontslagen of weer aan het werk mogen.",
+    after: "De isolatie mag alleen voortijdig worden opgeheven met schriftelijke toestemming van de infectiepreventieverantwoordelijke. Instellingen moeten dagelijks een isolatieregister bijhouden voor controledoeleinden.",
+    oldHtml: "Patiënten met een bevestigde diagnose moeten vanaf het begin van de symptomen minstens <del>10 dagen</del> in isolatie blijven, ongeacht de ernst van de symptomen, voordat ze uit het ziekenhuis mogen worden ontslagen of weer aan het werk mogen.",
+    newHtml: "Patiënten met een bevestigde diagnose moeten vanaf het begin van de symptomen minstens <ins>5 dagen</ins> in isolatie blijven bij gevallen met een laag risico, voordat ze uit het ziekenhuis mogen worden ontslagen of weer aan het werk mogen.",
+    unifiedHtml: "Patiënten met een bevestigde diagnose moeten vanaf het begin van de symptomen minstens <del>10 dagen</del><ins>5 dagen</ins> in isolatie blijven<del>, ongeacht de ernst van de symptomen</del><ins> bij gevallen met een laag risico</ins>, voordat ze uit het ziekenhuis mogen worden ontslagen of weer aan het werk mogen.",
     status: "pending"
   },
   {
     id: 2,
-    docName: "Infectious Disease Response Plan.docx",
+    docName: "Plan voor de aanpak van infectieziekten.docx",
     order: 2,
-    section: "5.1 Personal Protective Equipment",
+    section: "5.1 Persoonlijke beschermingsmiddelen",
     severity: "high",
     source: { name: "CDC Field Advisory 118.pdf", date: "2026-09-19", page: "p.2, §1.3" },
-    rationale: "New advisory adds a requirement for N95/FFP2 respirators (previously surgical masks were sufficient) in high-risk contact scenarios, following an updated transmission risk assessment.",
+    rationale: "Het nieuwe advies vereist ademhalingsbescherming van het type N95/FFP2 (voorheen volstonden chirurgische mondmaskers) bij contact met een hoog risico, na een bijgewerkte beoordeling van het besmettingsrisico.",
     kind: "modify",
-    before: "Appropriate PPE must be donned prior to any patient contact and doffed following strict sequencing to avoid self-contamination. PPE supplies are to be replenished daily by the ward logistics coordinator.",
-    current: "Staff in direct contact with symptomatic patients must wear a standard surgical mask, gloves, and a disposable gown.",
-    proposed: "Staff in direct contact with symptomatic patients must wear an N95 or FFP2-rated respirator, gloves, and a disposable gown.",
-    after: "Used PPE must be disposed of in designated biohazard containers immediately after doffing. Any breach of PPE protocol must be reported to the shift supervisor without delay.",
-    oldHtml: "Staff in direct contact with symptomatic patients must wear <del>a standard surgical mask</del>, gloves, and a disposable gown.",
-    newHtml: "Staff in direct contact with symptomatic patients must wear <ins>an N95 or FFP2-rated respirator</ins>, gloves, and a disposable gown.",
-    unifiedHtml: "Staff in direct contact with symptomatic patients must wear <del>a standard surgical mask</del><ins>an N95 or FFP2-rated respirator</ins>, gloves, and a disposable gown.",
+    before: "De juiste persoonlijke beschermingsmiddelen moeten vóór elk patiëntencontact worden aangetrokken en in de voorgeschreven volgorde worden uitgedaan om zelfbesmetting te voorkomen. De voorraad moet dagelijks worden aangevuld door de logistiek verantwoordelijke van de afdeling.",
+    current: "Medewerkers die rechtstreeks contact hebben met patiënten met symptomen moeten een standaard chirurgisch mondmasker, handschoenen en een wegwerpschort dragen.",
+    proposed: "Medewerkers die rechtstreeks contact hebben met patiënten met symptomen moeten een ademhalingsmasker van het type N95 of FFP2, handschoenen en een wegwerpschort dragen.",
+    after: "Gebruikte beschermingsmiddelen moeten onmiddellijk na het uittrekken in daarvoor bestemde containers voor biologisch afval worden weggegooid. Elke inbreuk op het protocol moet onmiddellijk aan de shiftverantwoordelijke worden gemeld.",
+    oldHtml: "Medewerkers die rechtstreeks contact hebben met patiënten met symptomen moeten een <del>standaard chirurgisch mondmasker</del>, handschoenen en een wegwerpschort dragen.",
+    newHtml: "Medewerkers die rechtstreeks contact hebben met patiënten met symptomen moeten een <ins>ademhalingsmasker van het type N95 of FFP2</ins>, handschoenen en een wegwerpschort dragen.",
+    unifiedHtml: "Medewerkers die rechtstreeks contact hebben met patiënten met symptomen moeten een <del>standaard chirurgisch mondmasker</del><ins>ademhalingsmasker van het type N95 of FFP2</ins>, handschoenen en een wegwerpschort dragen.",
     status: "pending"
   },
   {
     id: 5,
-    docName: "Outbreak Reporting Procedure.docx",
+    docName: "Procedure voor meldingen van uitbraken.docx",
     order: 1,
-    section: "1.2 Definitions",
+    section: "1.2 Definities",
     severity: "medium",
     source: { name: "National Health Authority Circular 44.pdf", date: "2026-09-15", page: "p.1, §0" },
-    rationale: "The circular introduces a new formal definition for 'cluster event' that the current procedure does not define, creating ambiguity in reporting obligations. Suggested addition, no conflicting text removed.",
+    rationale: "De circulaire introduceert een formele definitie van 'clustergeval', die in de huidige procedure ontbreekt. Daardoor zijn de meldingsverplichtingen onduidelijk. Voorgestelde toevoeging; er wordt geen tegenstrijdige tekst verwijderd.",
     kind: "add",
-    before: "For the purposes of this procedure, the following terms apply:\n\n&ldquo;Confirmed case&rdquo; means an individual with a positive laboratory test result for the notifiable pathogen.\n\n&ldquo;Suspected case&rdquo; means an individual meeting the clinical case definition pending laboratory confirmation.",
-    proposed: "&ldquo;Cluster event&rdquo; means three or more epidemiologically linked confirmed cases occurring within the same facility or household within a 14-day period.",
-    after: "&ldquo;Facility&rdquo; means any licensed premises providing inpatient or outpatient clinical care.",
-    oldHtml: "<span style='color:#9aa4b2'>[No equivalent definition currently exists in this document]</span>",
-    newHtml: "<ins>\"Cluster event\" means three or more epidemiologically linked confirmed cases occurring within the same facility or household within a 14-day period.</ins>",
-    unifiedHtml: "<ins>\"Cluster event\" means three or more epidemiologically linked confirmed cases occurring within the same facility or household within a 14-day period.</ins> <span style='color:#9aa4b2'>(new definition &mdash; no prior text existed)</span>",
+    before: "Voor deze procedure gelden de volgende definities:\n\n&ldquo;Bevestigd geval&rdquo;: een persoon met een positief laboratoriumresultaat voor de meldingsplichtige ziekteverwekker.\n\n&ldquo;Vermoedelijk geval&rdquo;: een persoon die voldoet aan de klinische gevalsdefinitie, maar bij wie de laboratoriumbevestiging nog ontbreekt.",
+    proposed: "&ldquo;Clustergeval&rdquo;: drie of meer epidemiologisch met elkaar verbonden bevestigde gevallen die zich binnen een periode van 14 dagen in dezelfde instelling of hetzelfde huishouden voordoen.",
+    after: "&ldquo;Instelling&rdquo;: elke erkende locatie waar klinische zorg met of zonder overnachting wordt verleend.",
+    oldHtml: "<span style='color:#9aa4b2'>[In dit document bestaat momenteel geen overeenkomstige definitie]</span>",
+    newHtml: "<ins>\"Clustergeval\": drie of meer epidemiologisch met elkaar verbonden bevestigde gevallen die zich binnen een periode van 14 dagen in dezelfde instelling of hetzelfde huishouden voordoen.</ins>",
+    unifiedHtml: "<ins>\"Clustergeval\": drie of meer epidemiologisch met elkaar verbonden bevestigde gevallen die zich binnen een periode van 14 dagen in dezelfde instelling of hetzelfde huishouden voordoen.</ins> <span style='color:#9aa4b2'>(nieuwe definitie &mdash; er was nog geen eerdere tekst)</span>",
     status: "accepted"
   },
   {
     id: 3,
-    docName: "Outbreak Reporting Procedure.docx",
+    docName: "Procedure voor meldingen van uitbraken.docx",
     order: 2,
-    section: "2.4 Reporting Threshold",
+    section: "2.4 Meldingsdrempel",
     severity: "medium",
     source: { name: "National Health Authority Circular 44.pdf", date: "2026-09-15", page: "p.1, §1" },
-    rationale: "The reporting threshold for mandatory notification has been lowered from 5 to 3 confirmed cases in a single facility within 48 hours, per the new circular. Current policy would delay escalation.",
+    rationale: "Volgens de nieuwe circulaire is de drempel voor verplichte melding verlaagd van 5 naar 3 bevestigde gevallen in één instelling binnen 48 uur. Door het huidige beleid zou opschaling worden vertraagd.",
     kind: "modify",
-    before: "Early detection of clustered cases is essential to enable a timely public health response. Facility infection control leads are responsible for monitoring case counts on a rolling basis.",
-    current: "Facilities must notify the regional health authority within 24 hours of identifying 5 or more confirmed cases linked to the same facility within a 48-hour window.",
-    proposed: "Facilities must notify the regional health authority within 24 hours of identifying 3 or more confirmed cases linked to the same facility within a 48-hour window.",
-    after: "Notifications must be submitted using the standard Form OB-1 and copied to the facility's medical director.",
-    oldHtml: "Facilities must notify the regional health authority within 24 hours of identifying <del>5 or more</del> confirmed cases linked to the same facility within a 48-hour window.",
-    newHtml: "Facilities must notify the regional health authority within 24 hours of identifying <ins>3 or more</ins> confirmed cases linked to the same facility within a 48-hour window.",
-    unifiedHtml: "Facilities must notify the regional health authority within 24 hours of identifying <del>5 or more</del><ins>3 or more</ins> confirmed cases linked to the same facility within a 48-hour window.",
+    before: "Vroege opsporing van samenhangende gevallen is noodzakelijk om tijdig te kunnen reageren vanuit de volksgezondheid. De verantwoordelijken voor infectiepreventie in de instelling volgen de aantallen gevallen doorlopend op.",
+    current: "Instellingen moeten de regionale gezondheidsautoriteit binnen 24 uur op de hoogte brengen zodra zij binnen een periode van 48 uur 5 of meer bevestigde gevallen vaststellen die verband houden met dezelfde instelling.",
+    proposed: "Instellingen moeten de regionale gezondheidsautoriteit binnen 24 uur op de hoogte brengen zodra zij binnen een periode van 48 uur 3 of meer bevestigde gevallen vaststellen die verband houden met dezelfde instelling.",
+    after: "Meldingen moeten worden ingediend met het standaardformulier OB-1 en in kopie worden bezorgd aan de medisch directeur van de instelling.",
+    oldHtml: "Instellingen moeten de regionale gezondheidsautoriteit binnen 24 uur op de hoogte brengen zodra zij binnen een periode van 48 uur <del>5 of meer</del> bevestigde gevallen vaststellen die verband houden met dezelfde instelling.",
+    newHtml: "Instellingen moeten de regionale gezondheidsautoriteit binnen 24 uur op de hoogte brengen zodra zij binnen een periode van 48 uur <ins>3 of meer</ins> bevestigde gevallen vaststellen die verband houden met dezelfde instelling.",
+    unifiedHtml: "Instellingen moeten de regionale gezondheidsautoriteit binnen 24 uur op de hoogte brengen zodra zij binnen een periode van 48 uur <del>5 of meer</del><ins>3 of meer</ins> bevestigde gevallen vaststellen die verband houden met dezelfde instelling.",
     status: "pending"
   },
   {
     id: 6,
-    docName: "Vaccination Guidance.docx",
+    docName: "Vaccinatierichtlijn.docx",
     order: 1,
-    section: "2.1 Eligible Age Groups",
+    section: "2.1 In aanmerking komende leeftijdsgroepen",
     severity: "medium",
     source: { name: "CDC Field Advisory 118.pdf", date: "2026-09-19", page: "p.3, §2.0" },
-    rationale: "Advisory extends eligibility to children aged 5-11 under a new emergency authorization. Confirmed as consistent with current national policy; recommend accepting.",
+    rationale: "Het advies breidt de toelatingscriteria op basis van een nieuwe noodtoelating uit naar kinderen van 5 tot en met 11 jaar. Dit is in overeenstemming met het huidige nationale beleid; aanvaarding wordt aanbevolen.",
     kind: "modify",
-    before: "Eligibility criteria are reviewed in line with national immunization policy and emergency use authorizations issued by the relevant regulatory body.",
-    current: "This guidance applies to individuals aged 12 years and older.",
-    proposed: "This guidance applies to individuals aged 5 years and older.",
-    after: "Eligibility for individuals outside this range requires case-by-case clinical review and documented parental or guardian consent where applicable.",
-    oldHtml: "This guidance applies to individuals aged <del>12 years and older</del>.",
-    newHtml: "This guidance applies to individuals aged <ins>5 years and older</ins>.",
-    unifiedHtml: "This guidance applies to individuals aged <del>12 years and older</del><ins>5 years and older</ins>.",
+    before: "De toelatingscriteria worden getoetst aan het nationale immunisatiebeleid en de noodtoelatingen van de bevoegde regelgevende instantie.",
+    current: "Deze richtlijn geldt voor personen van 12 jaar en ouder.",
+    proposed: "Deze richtlijn geldt voor personen van 5 jaar en ouder.",
+    after: "Voor personen buiten deze leeftijdsgroep is een individuele klinische beoordeling nodig en, indien van toepassing, schriftelijke toestemming van een ouder of voogd.",
+    oldHtml: "Deze richtlijn geldt voor personen van <del>12 jaar en ouder</del>.",
+    newHtml: "Deze richtlijn geldt voor personen van <ins>5 jaar en ouder</ins>.",
+    unifiedHtml: "Deze richtlijn geldt voor personen van <del>12 jaar en ouder</del><ins>5 jaar en ouder</ins>.",
     status: "rejected"
   },
   {
     id: 4,
-    docName: "Vaccination Guidance.docx",
+    docName: "Vaccinatierichtlijn.docx",
     order: 2,
-    section: "4.3 Booster Interval",
+    section: "4.3 Interval tussen boosterdoses",
     severity: "high",
     source: { name: "WHO Technical Bulletin 2026-14.pdf", date: "2026-09-21", page: "p.6, §3.2" },
-    rationale: "Booster interval guidance changed from 6 months to 4 months for high-risk groups following new efficacy data cited in the bulletin. This is a gap not yet reflected in the current guidance.",
+    rationale: "Op basis van nieuwe werkzaamheidsgegevens in het bulletin is het aanbevolen interval tussen boosterdoses voor risicogroepen gewijzigd van 6 naar 4 maanden. Deze wijziging is nog niet opgenomen in de huidige richtlijn.",
     kind: "modify",
-    before: "Booster dosing schedules are reviewed periodically in line with emerging clinical evidence and supply availability. Eligibility is determined by risk category as defined in Section 2.",
-    current: "High-risk individuals should receive a booster dose no sooner than 6 months after their previous dose.",
-    proposed: "High-risk individuals should receive a booster dose no sooner than 4 months after their previous dose.",
-    after: "Booster appointments should be scheduled through the regional immunization portal. Adverse events following immunization must be reported per Section 6.",
-    oldHtml: "High-risk individuals should receive a booster dose no sooner than <del>6 months</del> after their previous dose.",
-    newHtml: "High-risk individuals should receive a booster dose no sooner than <ins>4 months</ins> after their previous dose.",
-    unifiedHtml: "High-risk individuals should receive a booster dose no sooner than <del>6 months</del><ins>4 months</ins> after their previous dose.",
+    before: "De schema's voor boosterdoses worden regelmatig herzien op basis van nieuwe klinische gegevens en de beschikbaarheid van vaccins. De toelating wordt bepaald door de risicocategorie zoals beschreven in onderdeel 2.",
+    current: "Personen met een hoog risico krijgen hun boosterdosis pas minstens 6 maanden na hun vorige dosis.",
+    proposed: "Personen met een hoog risico krijgen hun boosterdosis pas minstens 4 maanden na hun vorige dosis.",
+    after: "Maak afspraken voor boosterdoses via het regionale immunisatieportaal. Bijwerkingen na immunisatie moeten worden gemeld volgens onderdeel 6.",
+    oldHtml: "Personen met een hoog risico krijgen hun boosterdosis pas minstens <del>6 maanden</del> na hun vorige dosis.",
+    newHtml: "Personen met een hoog risico krijgen hun boosterdosis pas minstens <ins>4 maanden</ins> na hun vorige dosis.",
+    unifiedHtml: "Personen met een hoog risico krijgen hun boosterdosis pas minstens <del>6 maanden</del><ins>4 maanden</ins> na hun vorige dosis.",
     status: "pending"
   }
 ];
 
-const severityLabel = { critical: "Critical", high: "High", medium: "Medium" };
+const severityLabel = { critical: "Kritiek", high: "Hoog", medium: "Gemiddeld" };
+const statusLabel = { pending: "In afwachting", accepted: "Goedgekeurd", rejected: "Afgekeurd" };
 
 let activeDoc = documents[0];
 let activeCaseId = getDocCases(activeDoc)[0].id;
@@ -657,9 +656,9 @@ function getDocCases(docName){
   return cases.filter(c => c.docName === docName).sort((a,b) => a.order - b.order);
 }
 function statusChipLabel(c){
-  if(c.status === "pending") return c.kind === "add" ? "&#9873; New text available" : "&#9873; Proposed edit";
-  if(c.status === "accepted") return c.kind === "add" ? "&#10003; Added" : "&#10003; Accepted";
-  return c.kind === "add" ? "&#10005; Rejected &mdash; not added" : "&#10005; Rejected &mdash; kept as-is";
+  if(c.status === "pending") return c.kind === "add" ? "&#9873; Nieuwe tekst beschikbaar" : "&#9873; Voorgestelde wijziging";
+  if(c.status === "accepted") return c.kind === "add" ? "&#10003; Toegevoegd" : "&#10003; Goedgekeurd";
+  return c.kind === "add" ? "&#10005; Afgekeurd &mdash; niet toegevoegd" : "&#10005; Afgekeurd &mdash; ongewijzigd gelaten";
 }
 function fmtTime(d){ return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
 
@@ -688,7 +687,7 @@ function renderDocToolbar(){
     return `
       <button class="doc-tab ${docName === activeDoc ? 'active' : ''}" data-doc="${docName}">
         &#128196; ${docName}
-        <span class="count ${pending===0?'zero':''}">${pending} pending</span>
+        <span class="count ${pending===0?'zero':''}">${pending} in afwachting</span>
       </button>
     `;
   }).join('');
@@ -698,7 +697,7 @@ function renderDocToolbar(){
 
   const list = getDocCases(activeDoc);
   const idx = list.findIndex(c => c.id === activeCaseId);
-  document.getElementById('gapProgress').textContent = `Gap ${idx+1} of ${list.length} in this document`;
+  document.getElementById('gapProgress').textContent = `Wijziging ${idx+1} van ${list.length} in dit document`;
   document.getElementById('prevGapBtn').disabled = list.length <= 1;
   document.getElementById('nextGapBtn').disabled = list.length <= 1;
 }
@@ -709,13 +708,13 @@ function renderReading(){
 
   let body = `
     <div class="doc-heading">${activeDoc}</div>
-    <div class="doc-sub">Full current text &middot; read top to bottom, exactly as it appears in the authoritative document today</div>
+    <div class="doc-sub">Volledige huidige tekst &middot; lees van boven naar beneden, precies zoals die vandaag in het officiële document staat</div>
     <div class="reading-legend">
-      <span><span class="dot pending"></span> Pending review</span>
-      <span><span class="dot accepted"></span> Accepted change</span>
-      <span><span class="dot rejected"></span> Rejected change</span>
+      <span><span class="dot pending"></span> Ter beoordeling</span>
+      <span><span class="dot accepted"></span> Goedgekeurde wijziging</span>
+      <span><span class="dot rejected"></span> Afgekeurde wijziging</span>
     </div>
-    <div class="section-ellipsis">&#8942; earlier sections unchanged &#8942;</div>
+    <div class="section-ellipsis">&#8942; eerdere onderdelen ongewijzigd &#8942;</div>
   `;
 
   list.forEach((c, i) => {
@@ -726,7 +725,7 @@ function renderReading(){
     if(c.kind === "add"){
       if(c.status === "pending"){
         body += `<p><span class="gap-anchor" data-case="${c.id}">
-          <span class="gap-num st-pending">${num}</span><span class="gap-block st-pending">&#9888; Suggested new definition available &mdash; click to review</span>
+          <span class="gap-num st-pending">${num}</span><span class="gap-block st-pending">&#9888; Nieuwe definitie voorgesteld &mdash; klik om te beoordelen</span>
         </span></p>`;
       } else if(c.status === "accepted"){
         body += `<p><span class="gap-anchor" data-case="${c.id}">
@@ -734,7 +733,7 @@ function renderReading(){
         </span></p>`;
       } else {
         body += `<p><span class="gap-anchor" data-case="${c.id}">
-          <span class="gap-num st-rejected">${num}</span><span class="gap-block st-rejected">&#10005; Suggested addition reviewed and rejected</span>
+          <span class="gap-num st-rejected">${num}</span><span class="gap-block st-rejected">&#10005; Voorgestelde toevoeging beoordeeld en afgekeurd</span>
         </span></p>`;
       }
     } else {
@@ -755,11 +754,11 @@ function renderReading(){
 
     body += `<p>${c.after}</p>`;
     if(i < list.length - 1){
-      body += `<div class="section-ellipsis">&#8942; unchanged sections omitted for brevity &#8942;</div>`;
+      body += `<div class="section-ellipsis">&#8942; ongewijzigde onderdelen weggelaten &#8942;</div>`;
     }
   });
 
-  body += `<div class="section-ellipsis">&#8942; remaining sections continue unchanged &#8942;</div>`;
+  body += `<div class="section-ellipsis">&#8942; overige onderdelen lopen ongewijzigd door &#8942;</div>`;
 
   pane.innerHTML = body;
 
@@ -773,7 +772,7 @@ function renderReview(){
   const panel = document.getElementById('reviewPanel');
   const c = cases.find(x => x.id === activeCaseId);
   if(!c){
-    panel.innerHTML = `<div class="pane-scroll">Select a highlighted passage in the document to review its proposed redline.</div>`;
+    panel.innerHTML = `<div class="pane-scroll">Selecteer een gemarkeerde passage in het document om het wijzigingsvoorstel te beoordelen.</div>`;
     return;
   }
   const list = getDocCases(activeDoc);
@@ -782,36 +781,36 @@ function renderReview(){
   panel.className = `review-panel sev-border-${c.severity}`;
   panel.innerHTML = `
     <div class="pane-head">
-      <div class="ph-title">Gap ${idx+1} of ${list.length} &middot; ${c.section}</div>
-      <div class="ph-sub">Severity: ${severityLabel[c.severity]} &middot; Status: ${c.status.toUpperCase()}</div>
+      <div class="ph-title">Wijziging ${idx+1} van ${list.length} &middot; ${c.section}</div>
+      <div class="ph-sub">Ernst: ${severityLabel[c.severity]} &middot; Status: ${statusLabel[c.status]}</div>
     </div>
     <div class="pane-scroll">
       <div class="citation-box">
-        <div class="c-title">&#128278; Source citation</div>
+        <div class="c-title">&#128278; Bronverwijzing</div>
         ${c.source.name} &middot; ${c.source.page}<br/>
-        Published ${c.source.date}
+        Gepubliceerd op ${c.source.date}
       </div>
 
-      <div class="rationale"><b>Why this was flagged:</b> ${c.rationale}</div>
+      <div class="rationale"><b>Waarom dit is gemarkeerd:</b> ${c.rationale}</div>
 
       <div class="diff-toolbar">
         <div class="view-toggle">
-          <button data-mode="side" class="${viewMode==='side'?'active':''}">Side-by-side</button>
-          <button data-mode="unified" class="${viewMode==='unified'?'active':''}">Unified diff</button>
+          <button data-mode="side" class="${viewMode==='side'?'active':''}">Naast elkaar</button>
+          <button data-mode="unified" class="${viewMode==='unified'?'active':''}">Gecombineerde weergave</button>
         </div>
         <div class="legend">
-          <span><span class="swatch" style="background:#ffd7d5;"></span> Removed</span>
-          <span><span class="swatch" style="background:#c9f6de;"></span> Added</span>
+          <span><span class="swatch" style="background:#ffd7d5;"></span> Verwijderd</span>
+          <span><span class="swatch" style="background:#c9f6de;"></span> Toegevoegd</span>
         </div>
       </div>
 
       <div class="diff-side-by-side ${viewMode==='unified'?'hidden':''}">
         <div class="diff-col old">
-          <div class="col-head">Current text</div>
+          <div class="col-head">Huidige tekst</div>
           <div class="col-body">${c.oldHtml}</div>
         </div>
         <div class="diff-col new">
-          <div class="col-head">Proposed text (from source)</div>
+          <div class="col-head">Voorgestelde tekst (uit de bron)</div>
           <div class="col-body">${c.newHtml}</div>
         </div>
       </div>
@@ -820,21 +819,21 @@ function renderReview(){
       </div>
 
       <div class="mini-gap-list">
-        <div class="mgl-title">All gaps in this document</div>
+        <div class="mgl-title">Alle wijzigingen in dit document</div>
         ${list.map((g,i) => `
           <div class="mini-gap-item ${g.id===c.id?'active':''}" data-case="${g.id}">
             <span class="dot ${g.status}"></span>
             <span class="sec">${i+1}. ${g.section}</span>
-            <span class="st">${g.status}</span>
+            <span class="st">${statusLabel[g.status]}</span>
           </div>
         `).join('')}
       </div>
     </div>
     <div class="action-bar">
-      <button class="btn btn-accept" id="btnAccept" ${c.status!=='pending'?'disabled':''}>&#10003; Accept</button>
-      <button class="btn btn-reject" id="btnReject" ${c.status!=='pending'?'disabled':''}>&#10005; Reject</button>
-      <button class="btn btn-secondary" id="btnReset" ${c.status==='pending'?'disabled':''}>&#8635; Reset</button>
-      <span class="decided-note">${c.status!=='pending' ? 'Decision recorded.' : 'No decision yet.'}</span>
+      <button class="btn btn-accept" id="btnAccept" ${c.status!=='pending'?'disabled':''}>&#10003; Goedkeuren</button>
+      <button class="btn btn-reject" id="btnReject" ${c.status!=='pending'?'disabled':''}>&#10005; Afkeuren</button>
+      <button class="btn btn-secondary" id="btnReset" ${c.status==='pending'?'disabled':''}>&#8635; Terugzetten</button>
+      <span class="decided-note">${c.status!=='pending' ? 'Beslissing vastgelegd.' : 'Nog geen beslissing genomen.'}</span>
     </div>
   `;
 
@@ -866,7 +865,7 @@ function renderAudit(){
       <td>${fmtTime(e.time)}</td>
       <td>${e.doc}</td>
       <td>${e.section}</td>
-      <td style="color:${decisionColor}; font-weight:600;">${e.decision.toUpperCase()}</td>
+      <td style="color:${decisionColor}; font-weight:600;">${statusLabel[e.decision]}</td>
       <td>${e.reviewer}</td>
     `;
     body.appendChild(tr);
@@ -911,7 +910,7 @@ function decide(c, status, isReset){
       doc: c.docName,
       section: c.section,
       decision: status,
-      reviewer: "You (POC reviewer)"
+      reviewer: "Jij (POC-beoordelaar)"
     });
   }
   renderAll();
